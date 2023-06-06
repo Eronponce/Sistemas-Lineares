@@ -1,6 +1,6 @@
 import streamlit as st
 import numpy as np
-
+import pandas as pd
 
 def permutation_matrix(matrix):
     n = matrix.shape[0]
@@ -11,8 +11,11 @@ def permutation_matrix(matrix):
 
 
 def gaussian_elimination(matrix, n):
+    # Cópia da matriz original (matriz inicial)
+    matriz_original = np.copy(matrix)
+
     # Fase de eliminação
-    st.code(permutation_matrix(matrix))
+    matriz_L = np.eye(n)  # Inicializa a matriz L como uma matriz identidade
     for i in range(n):
         if matrix[i, i] == 0:
             # Verifica se o elemento diagonal é zero
@@ -21,18 +24,22 @@ def gaussian_elimination(matrix, n):
                 if matrix[j, i] != 0:
                     # Realiza a permutação da linha i com a linha j
                     matrix[[i, j]] = matrix[[j, i]]
+                    matriz_L[[i, j]] = matriz_L[[j, i]]  # Atualiza a matriz L com a permutação
                     break
             else:
                 # Se não houver uma linha não nula para permutar, a matriz não é invertível
-                return None
+                return None, None
         for j in range(i+1, n):
             # Calcula a razão entre a linha atual (j) e a linha pivot (i)
             pivo = matrix[j, i] / matrix[i, i]
+            matriz_L[j, i] = pivo  # Armazena a razão na matriz L
             for k in range(n+1):
                 # Executa a operação de eliminação: subtrai a linha
                 # pivot multiplicada pela razão da linha atual
                 matrix[j, k] -= pivo * matrix[i, k]
         st.dataframe(matrix)
+    
+    # Exibe a matriz U (matriz resultante da eliminação de Gauss)
     # Fase de substituição
     solution = np.zeros(n)
     solution[n-1] = matrix[n-1, n] / matrix[n-1, n-1]
@@ -47,16 +54,45 @@ def gaussian_elimination(matrix, n):
         #  para obter o valor da solução
         solution[i] /= matrix[i, i]
 
-    return solution
+    return solution, matriz_L, matriz_original
 
 
+def gauss_seidel(matrix, n, epsilon, initial_guesses):
+    iteration = 0  # Inicializa o contador de iterações
+    solution = np.array(initial_guesses)  # Inicializa o vetor solução
+    
+    while True:
+        prev_solution = solution.copy()  # Faz uma cópia da solução anterior
+        
+        # Itera através de cada equação
+        for i in range(n):
+            sum1 = np.dot(matrix[i, :i], solution[:i])  # Calcula o produto escalar das soluções anteriores com os coeficientes correspondentes
+            sum2 = np.dot(matrix[i, i + 1:-1], solution[i + 1:])  # Calcula o produto escalar das soluções anteriores com os coeficientes correspondentes
+            solution[i] = (matrix[i, -1] - sum1 - sum2) / matrix[i, i]  # Atualiza a solução atual
+            
+        iteration += 1  # Incrementa o contador de iterações
+        # Exemplo de DataFrame
+        df = pd.DataFrame({'coluna': solution.tolist()  })
+
+        # Crie um dicionário de mapeamento para renomear os índices
+        indice_mapeamento = {i: f'x{i+1}' for i in range(len(df))}
+
+        # Renomeie os índices usando o método rename
+        df = df.rename(index=indice_mapeamento)
+        st.dataframe(df)
+        # Verifica a convergência com base na diferença entre a solução atual e a solução anterior
+        if np.linalg.norm(solution - prev_solution) < epsilon:
+            st.write("Convergiu em", iteration, "iterações")  # Exibe informações sobre a convergência
+            return solution.tolist()  # Retorna a solução como uma lista
+        
+        # Verifica o número máximo de iterações
+        if iteration > 100:
+            st.write("Não convergiu após 1000 iterações")  # Exibe informações sobre a falha na convergência
+            return None  # Retorna None para indicar falha na convergência
 
 
 def main():
     escolha = st.sidebar.radio("Escolha o método:", ("Eliminação de Gauss", "Eliminação de Gauss-Seidel"))
-    
-        
-
     st.title("Eliminação de Gauss")
     interacao = st.number_input("Qual o tamanho da matriz:", min_value=1, step=1)
     matriz = np.zeros((interacao, interacao + 1))
@@ -72,26 +108,39 @@ def main():
             matriz[i, j] = cols[j].number_input(
                 f"{variable_name} Elemento ({i}, {j})",
                 key=f"element_{i}_{j}", step=1.0
-                )
+            )
 
     if escolha == "Eliminação de Gauss-Seidel":
         epsilon = st.sidebar.number_input("Qual o valor de epsilon:", min_value=0.0, step=0.1)
         inputs = []
         for i in range(interacao):
             input_value = st.sidebar.text_input(f"Chutes X{i+1}")
-            inputs.append(input_value)
-      
-    if st.button("Calcular"):
-        if escolha == "Eliminação de Gauss":
-            result = gaussian_elimination(matriz, interacao)
-            if result is not None:
-                st.subheader("Result:")
-                st.code(result)
-        elif escolha == "Eliminação de Gauss-Seidel":
-            result = gauss_seidel()
+            inputs.append(float(input_value) if input_value != "" else 0.0)
+
+        if st.button("Calcular"):
+            result = gauss_seidel(matriz, interacao, epsilon, inputs)
             if result is not None:
                 st.subheader("Result:")
                 st.code(result)
 
+    if escolha == "Eliminação de Gauss":
+        if st.button("Calcular"):
+            result, matriz_L, matriz_original = gaussian_elimination(np.copy(matriz), interacao)
+
+            if result is not None:
+                st.subheader("Result:")
+                st.code(result)
+                st.subheader("Matriz L:")
+                st.dataframe(matriz_L)
+                st.subheader("Matriz U:")
+                st.dataframe(matriz)
+                st.subheader("Matriz de Permutação:")
+                st.dataframe(permutation_matrix(matriz_original))
+                # Cálculo manual da multiplicação das matrizes L, U e a matriz de permutação
+                matriz_mult = np.dot(matriz_L, matriz)
+                matriz_mult = np.matmul(matriz_mult)
+
+                st.subheader("Matriz Original L * U * Permutação:")
+                st.dataframe(matriz_mult)
 
 main()
