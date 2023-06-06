@@ -2,6 +2,7 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 
+
 def permutation_matrix(matrix):
     n = matrix.shape[0]
     matriz_permutacao = np.eye(n)
@@ -54,7 +55,7 @@ def gaussian_elimination(matrix, n):
         #  para obter o valor da solução
         solution[i] /= matrix[i, i]
 
-    return solution, matriz_L, matriz_original
+    return solution, matriz_L, matriz_original, matrix
 
 
 def gauss_seidel(matrix, n, epsilon, initial_guesses):
@@ -94,7 +95,7 @@ def gauss_seidel(matrix, n, epsilon, initial_guesses):
 def main():
     escolha = st.sidebar.radio("Escolha o método:", ("Eliminação de Gauss", "Eliminação de Gauss-Seidel"))
     st.title("Eliminação de Gauss")
-    interacao = st.number_input("Qual o tamanho da matriz:", min_value=1, step=1)
+    interacao = st.number_input("Qual o tamanho da matriz:", min_value=1)
     matriz = np.zeros((interacao, interacao + 1))
     st.subheader("Coloque a matriz abaixo:")
     cols = st.columns(interacao + 1)
@@ -107,7 +108,7 @@ def main():
                 variable_name = f'x{j+1}'
             matriz[i, j] = cols[j].number_input(
                 f"{variable_name} Elemento ({i}, {j})",
-                key=f"element_{i}_{j}", step=1.0
+                key=f"element_{i}_{j}", step=0.1
             )
 
     if escolha == "Eliminação de Gauss-Seidel":
@@ -125,7 +126,7 @@ def main():
 
     if escolha == "Eliminação de Gauss":
         if st.button("Calcular"):
-            result, matriz_L, matriz_original = gaussian_elimination(np.copy(matriz), interacao)
+            result, matriz_L, matriz_original, matriz_U = gaussian_elimination(np.copy(matriz), interacao)
 
             if result is not None:
                 st.subheader("Result:")
@@ -133,12 +134,12 @@ def main():
                 st.subheader("Matriz L:")
                 st.dataframe(matriz_L)
                 st.subheader("Matriz U:")
-                st.dataframe(matriz)
+                st.dataframe(matriz_U)
                 st.subheader("Matriz de Permutação:")
                 st.dataframe(permutation_matrix(matriz_original))
-                # Cálculo manual da multiplicação das matrizes L, U e a matriz de permutação
-                matriz_mult = np.dot(matriz_L, matriz)
-                matriz_mult = np.matmul(matriz_mult)
+                matriz_permutacao = permutation_matrix(matriz_original)
+                matriz_mult = np.matmul(matriz_L, matriz_U)
+               
 
                 st.subheader("Matriz Original L * U * Permutação:")
                 st.dataframe(matriz_mult)
