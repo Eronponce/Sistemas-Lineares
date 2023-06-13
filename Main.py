@@ -29,7 +29,7 @@ def gaussian_elimination(matrix, n):
                     break
             else:
                 # Se não houver uma linha não nula para permutar, a matriz não é invertível
-                return None, None
+                return None, None, None
         for j in range(i+1, n):
             # Calcula a razão entre a linha atual (j) e a linha pivot (i)
             pivo = matrix[j, i] / matrix[i, i]
@@ -38,24 +38,11 @@ def gaussian_elimination(matrix, n):
                 # Executa a operação de eliminação: subtrai a linha
                 # pivot multiplicada pela razão da linha atual
                 matrix[j, k] -= pivo * matrix[i, k]
-        st.dataframe(matrix)
-    
-    # Exibe a matriz U (matriz resultante da eliminação de Gauss)
-    # Fase de substituição
-    solution = np.zeros(n)
-    solution[n-1] = matrix[n-1, n] / matrix[n-1, n-1]
-    for i in range(n-2, -1, -1):
-        # Calcula a solução para a variável atual (i)
-        solution[i] = matrix[i, n]
-        for j in range(i+1, n):
-            # Subtrai as variáveis já calculadas multiplicadas
-            #  pelos coeficientes correspondentes
-            solution[i] -= matrix[i, j] * solution[j]
-        # Divide pelo coeficiente da variável atual
-        #  para obter o valor da solução
-        solution[i] /= matrix[i, i]
 
-    return solution, matriz_L, matriz_original, matrix
+    # Retorna apenas a matriz U sem os resultados do sistema
+    matriz_U = matrix[:, :-1]
+
+    return matriz_U, matriz_L, matriz_original
 
 
 def gauss_seidel(matrix, n, epsilon, initial_guesses):
@@ -72,15 +59,7 @@ def gauss_seidel(matrix, n, epsilon, initial_guesses):
             solution[i] = (matrix[i, -1] - sum1 - sum2) / matrix[i, i]  # Atualiza a solução atual
             
         iteration += 1  # Incrementa o contador de iterações
-        # Exemplo de DataFrame
-        df = pd.DataFrame({'coluna': solution.tolist()  })
 
-        # Crie um dicionário de mapeamento para renomear os índices
-        indice_mapeamento = {i: f'x{i+1}' for i in range(len(df))}
-
-        # Renomeie os índices usando o método rename
-        df = df.rename(index=indice_mapeamento)
-        st.dataframe(df)
         # Verifica a convergência com base na diferença entre a solução atual e a solução anterior
         if np.linalg.norm(solution - prev_solution) < epsilon:
             st.write("Convergiu em", iteration, "iterações")  # Exibe informações sobre a convergência
@@ -126,17 +105,15 @@ def main():
 
     if escolha == "Eliminação de Gauss":
         if st.button("Calcular"):
-            result, matriz_L, matriz_original, matriz_U = gaussian_elimination(np.copy(matriz), interacao)
+            matriz_U, matriz_L, matriz_original = gaussian_elimination(np.copy(matriz), interacao)
 
-            if result is not None:
-                st.subheader("Result:")
-                st.code(result)
-                st.subheader("Matriz L:")
-                st.dataframe(matriz_L)
+            if matriz_U is not None:
                 st.subheader("Matriz U:")
                 st.dataframe(matriz_U)
+                st.subheader("Matriz L:")
+                st.dataframe(matriz_L)
                 st.subheader("Matriz de Permutação:")
-                st.dataframe(permutation_matrix(matriz_original))
+                st.dataframe(permutation_matrix(matriz_U))
                 matriz_permutacao = permutation_matrix(matriz_original)
                 matriz_mult = np.matmul(matriz_L, matriz_U)
                
