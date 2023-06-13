@@ -3,15 +3,12 @@ import numpy as np
 import pandas as pd
 
 
-
 def permutation_matrix(matrix):
     n = matrix.shape[0]
-    perm_matrix = np.zeros((n, n))
-    for i, row in enumerate(matrix):
-        j = np.argmax(row)
-        perm_matrix[i, j] = 1
-    return perm_matrix
-
+    matriz_permutacao = np.eye(n)
+    sorted_indices = np.argsort(matrix[:, 0])  # Organiza as linhas da matriz de acordo com o primeiro elemento
+    matriz_permutacao = matriz_permutacao[sorted_indices]
+    return matriz_permutacao
 
 
 def gaussian_elimination(matrix, n):
