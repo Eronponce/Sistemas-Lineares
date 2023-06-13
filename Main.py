@@ -135,9 +135,9 @@ def main():
                 st.dataframe(matriz_L)
                 st.subheader("Matriz U:")
                 st.dataframe(matriz_U)
+                matriz_permutacao = permutation_matrix(matriz_original[:, :-1])
                 st.subheader("Matriz de Permutação:")
-                st.dataframe(permutation_matrix(matriz_original))
-                matriz_permutacao = permutation_matrix(matriz_original)
+                st.dataframe(permutation_matrix(matriz_permutacao))
                 matriz_mult = np.matmul(matriz_L, matriz_U)
                
 
